@@ -185,30 +185,32 @@ const App: React.FC = () => {
     } else if (newValue.length > expectedDisplayLength) {
       // User added characters
       const addedChars = newValue.length - expectedDisplayLength;
+      let newHidden = hiddenAnswer;
       
       // Process each added character
       for (let i = 0; i < addedChars; i++) {
         const newChar = newValue[expectedDisplayLength + i];
         
         if (newChar === '.') {
-          // End hiding mode when dot is encountered
+          // INSTANTLY complete the sentence when second dot is detected
           setIsHiding(false);
-          setPetitionDisplay(PETITION_PHRASE);
+          setPetitionDisplay(PETITION_PHRASE); // Show complete sentence
           return;
         } else {
           // Add to hidden answer and advance display
-          const newHidden = hiddenAnswer + newChar;
-          setHiddenAnswer(newHidden);
-          
-          if ((newHidden.length + 1) >= PETITION_PHRASE.length) {
-            // Auto-complete and exit hiding mode
-            setIsHiding(false);
-            setPetitionDisplay(PETITION_PHRASE);
-            return;
-          } else {
-            setPetitionDisplay(PETITION_PHRASE.substring(0, newHidden.length + 1));
-          }
+          newHidden = newHidden + newChar;
         }
+      }
+
+      // Update hidden answer and display
+      setHiddenAnswer(newHidden);
+      
+      if ((newHidden.length + 1) >= PETITION_PHRASE.length) {
+        // Auto-complete when we reach the end
+        setIsHiding(false);
+        setPetitionDisplay(PETITION_PHRASE);
+      } else {
+        setPetitionDisplay(PETITION_PHRASE.substring(0, newHidden.length + 1));
       }
     }
   }, [isHiding, showAnswer, hiddenAnswer, petitionDisplay, PETITION_PHRASE]);
@@ -228,8 +230,6 @@ const App: React.FC = () => {
         setHiddenAnswer('');
       }
       // Let onChange handle the rest for better mobile compatibility
-    } else {
-      // Not in hiding mode - let onChange handle dot detection
     }
   }, [isHiding, showAnswer]);
 
