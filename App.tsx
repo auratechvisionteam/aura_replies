@@ -147,81 +147,89 @@ const App: React.FC = () => {
     }
   }, [finalAnswer, showAnswer]);
 
-  // --- UPDATED MOBILE-COMPATIBLE PETITION HANDLING ---
+  // --- MOBILE & DESKTOP COMPATIBLE PETITION HANDLING ---
   const handlePetitionChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     if (showAnswer) return;
 
     const newValue = e.target.value;
     const oldValue = petitionDisplay;
 
-    // Check if user just typed a dot on an empty field (start hiding mode)
-    if (!isHiding && newValue === '.' && oldValue === '') {
-      setIsHiding(true);
-      setHiddenAnswer('');
-      setPetitionDisplay(PETITION_PHRASE.substring(0, 1));
+    // If not in hiding mode, handle normally
+    if (!isHiding) {
+      // Check if user just typed a dot on an empty field (start hiding mode)
+      if (newValue === '.' && oldValue === '') {
+        setIsHiding(true);
+        setHiddenAnswer('');
+        setPetitionDisplay(PETITION_PHRASE.substring(0, 1)); // Show "A"
+        return;
+      }
+      // Normal mode - just update the display
+      setPetitionDisplay(newValue);
       return;
     }
 
-    // Handle hiding mode
-    if (isHiding) {
-      // Check if user is deleting (newValue shorter than expected)
-      const expectedLength = hiddenAnswer.length + 1;
+    // In hiding mode - handle character input
+    const expectedDisplayLength = hiddenAnswer.length + 1; // +1 for the initial "A"
+
+    if (newValue.length < expectedDisplayLength) {
+      // User is deleting
+      if (hiddenAnswer.length > 0) {
+        const newHidden = hiddenAnswer.slice(0, -1);
+        setHiddenAnswer(newHidden);
+        setPetitionDisplay(PETITION_PHRASE.substring(0, newHidden.length + 1));
+      } else {
+        // Exit hiding mode if no hidden answer left
+        setIsHiding(false);
+        setPetitionDisplay('');
+      }
+    } else if (newValue.length > expectedDisplayLength) {
+      // User added characters
+      const addedChars = newValue.length - expectedDisplayLength;
       
-      if (newValue.length < expectedLength) {
-        // User is deleting
-        if (hiddenAnswer.length > 0) {
-          const newHidden = hiddenAnswer.slice(0, -1);
-          setHiddenAnswer(newHidden);
-          setPetitionDisplay(PETITION_PHRASE.substring(0, newHidden.length + 1));
-        } else {
-          // Exit hiding mode
-          setIsHiding(false);
-          setPetitionDisplay('');
-        }
-      } else if (newValue.length > expectedLength) {
-        // User added characters
-        const newChars = newValue.substring(expectedLength);
-        let newHidden = hiddenAnswer;
-
-        for (let char of newChars) {
-          if (char === '.') {
-            // End hiding mode when dot is encountered
-            setIsHiding(false);
-            return;
-          } else {
-            newHidden += char;
-          }
-        }
-
-        if ((newHidden.length + 1) >= PETITION_PHRASE.length) {
-          // Auto-complete and exit hiding mode
-          setHiddenAnswer(newHidden);
+      // Process each added character
+      for (let i = 0; i < addedChars; i++) {
+        const newChar = newValue[expectedDisplayLength + i];
+        
+        if (newChar === '.') {
+          // End hiding mode when dot is encountered
           setIsHiding(false);
           setPetitionDisplay(PETITION_PHRASE);
+          return;
         } else {
+          // Add to hidden answer and advance display
+          const newHidden = hiddenAnswer + newChar;
           setHiddenAnswer(newHidden);
-          setPetitionDisplay(PETITION_PHRASE.substring(0, newHidden.length + 1));
+          
+          if ((newHidden.length + 1) >= PETITION_PHRASE.length) {
+            // Auto-complete and exit hiding mode
+            setIsHiding(false);
+            setPetitionDisplay(PETITION_PHRASE);
+            return;
+          } else {
+            setPetitionDisplay(PETITION_PHRASE.substring(0, newHidden.length + 1));
+          }
         }
       }
-    } else {
-      // Normal mode - just update the display
-      setPetitionDisplay(newValue);
     }
   }, [isHiding, showAnswer, hiddenAnswer, petitionDisplay, PETITION_PHRASE]);
 
-  // Keep the original keydown handler for desktop compatibility
   const handlePetitionKeyDown = useCallback((e: KeyboardEvent<HTMLInputElement>) => {
     if (showAnswer) {
       e.preventDefault();
       return;
     }
-    
-    // Only handle specific desktop keyboard shortcuts
-    if (isHiding && e.key === 'Escape') {
-      e.preventDefault();
-      setIsHiding(false);
-      setPetitionDisplay('');
-      setHiddenAnswer('');
+
+    // Handle desktop-specific shortcuts
+    if (isHiding) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setIsHiding(false);
+        setPetitionDisplay('');
+        setHiddenAnswer('');
+      }
+      // Let onChange handle the rest for better mobile compatibility
+    } else {
+      // Not in hiding mode - let onChange handle dot detection
     }
   }, [isHiding, showAnswer]);
 
