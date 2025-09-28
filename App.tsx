@@ -192,9 +192,9 @@ const App: React.FC = () => {
         const newChar = newValue[expectedDisplayLength + i];
         
         if (newChar === '.') {
-          // INSTANTLY complete the sentence when second dot is detected
+          // Exit hiding mode when second dot is detected
+          // Keep the petition display as it currently is (don't auto-complete)
           setIsHiding(false);
-          setPetitionDisplay(PETITION_PHRASE); // Show complete sentence
           return;
         } else {
           // Add to hidden answer and advance display
