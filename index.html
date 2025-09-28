@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Aura Replies</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      .text-glow-cyan {
+        text-shadow: 0 0 8px rgba(0, 255, 255, 0.7), 0 0 20px rgba(0, 255, 255, 0.5);
+      }
+      .bg-radial-gradient {
+        background-image: radial-gradient(ellipse at center, #1a0033 0%, #000000 70%);
+      }
+      .input-hiding-glow {
+        border-color: #00ffff;
+        box-shadow: 0 0 25px rgba(0, 255, 255, 0.5), 0 0 10px rgba(0, 255, 255, 0.3);
+      }
+      .aura-core {
+        position: relative;
+        width: 150px;
+        height: 150px;
+        margin: 0 auto;
+      }
+      .aura-ring {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        border-radius: 50%;
+        border-style: solid;
+        transform: translate(-50%, -50%);
+      }
+      .aura-ring-1 {
+        width: 150px;
+        height: 150px;
+        border: 2px dashed #9400d3;
+        animation: rotate 20s linear infinite;
+      }
+      .aura-ring-2 {
+        width: 120px;
+        height: 120px;
+        border: 1px solid #00ffff;
+        animation: rotate-reverse 15s linear infinite;
+      }
+      .aura-ring-3 {
+          width: 135px;
+          height: 135px;
+          border: 1px solid #9400d3;
+          opacity: 0.5;
+          animation: rotate 25s linear infinite;
+      }
+      .aura-spark {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(0,255,255,0.6) 0%, rgba(0,255,255,0) 60%);
+        transform: translate(-50%, -50%);
+        animation: pulse 4s ease-in-out infinite;
+      }
+      .aura-core.thinking .aura-spark {
+        animation: pulse-thinking 1.5s ease-in-out infinite;
+      }
+      .aura-core.thinking .aura-ring-1,
+      .aura-core.thinking .aura-ring-2,
+      .aura-core.thinking .aura-ring-3 {
+        animation-duration: 1s;
+      }
+      @keyframes rotate {
+        from { transform: translate(-50%, -50%) rotate(0deg); }
+        to { transform: translate(-50%, -50%) rotate(360deg); }
+      }
+      @keyframes rotate-reverse {
+        from { transform: translate(-50%, -50%) rotate(360deg); }
+        to { transform: translate(-50%, -50%) rotate(0deg); }
+      }
+      @keyframes pulse {
+        0%, 100% { transform: translate(-50%,-50%) scale(1); opacity: 0.8; }
+        50% { transform: translate(-50%,-50%) scale(1.2); opacity: 1; }
+      }
+       @keyframes pulse-thinking {
+        0%, 100% { transform: translate(-50%,-50%) scale(1.1); opacity: 1; }
+        50% { transform: translate(-50%,-50%) scale(1.4); opacity: 1; }
+      }
+      @keyframes fade-in {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .animate-fade-in {
+        animation: fade-in 0.5s ease-out forwards;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.1.1/",
+    "react": "https://aistudiocdn.com/react@^19.1.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-gray-900">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
