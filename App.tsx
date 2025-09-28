@@ -1,4 +1,4 @@
-import React, { useState, useCallback, KeyboardEvent, ChangeEvent, useEffect } from 'react';
+import React, { useState, useCallback, KeyboardEvent, ChangeEvent, useEffect, useRef } from 'react';
 
 // --- EXPANDED RANDOM ANSWERS ---
 const randomAnswers = [
@@ -40,6 +40,7 @@ interface AuraFormProps {
   showAnswer: boolean;
   handlePetitionChange: (e: ChangeEvent<HTMLInputElement>) => void;
   handlePetitionKeyDown: (e: KeyboardEvent<HTMLInputElement>) => void;
+  handlePetitionInput: (e: any) => void;
   setQuestion: (value: string) => void;
   handleAskAura: () => void;
 }
@@ -56,9 +57,13 @@ const AuraForm: React.FC<AuraFormProps> = (props) => (
           className={`w-full bg-gray-900/80 border-2 border-cyan-600 focus:border-cyan-400 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all duration-300 shadow-[0_0_15px_rgba(0,255,255,0.2)] ${props.isHiding ? 'input-hiding-glow' : ''}`}
           value={props.petitionDisplay}
           onChange={props.handlePetitionChange}
+          onInput={props.handlePetitionInput}
           onKeyDown={props.handlePetitionKeyDown}
           disabled={props.showAnswer}
           autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck="false"
         />
       </div>
       <div className="relative">
@@ -125,6 +130,10 @@ const App: React.FC = () => {
   const [isThinking, setIsThinking] = useState(false);
   const [showAnswer, setShowAnswer] = useState(false);
 
+  // Mobile-specific state tracking
+  const lastValueRef = useRef('');
+  const processingRef = useRef(false);
+
   const PETITION_PHRASE = 'Aura please answer the following question.';
 
   // --- Typewriter Effect ---
@@ -147,89 +156,102 @@ const App: React.FC = () => {
     }
   }, [finalAnswer, showAnswer]);
 
-  // --- MOBILE & DESKTOP COMPATIBLE PETITION HANDLING ---
-  const handlePetitionChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-    if (showAnswer) return;
-
-    const newValue = e.target.value;
-    const oldValue = petitionDisplay;
-
-    // If not in hiding mode, handle normally
-    if (!isHiding) {
-      // Check if user just typed a dot on an empty field (start hiding mode)
-      if (newValue === '.' && oldValue === '') {
-        setIsHiding(true);
-        setHiddenAnswer('');
-        setPetitionDisplay(PETITION_PHRASE.substring(0, 1)); // Show "A"
-        return;
-      }
-      // Normal mode - just update the display
-      setPetitionDisplay(newValue);
-      return;
-    }
-
-    // In hiding mode - handle character input
-    const expectedDisplayLength = hiddenAnswer.length + 1; // +1 for the initial "A"
-
-    if (newValue.length < expectedDisplayLength) {
-      // User is deleting
-      if (hiddenAnswer.length > 0) {
-        const newHidden = hiddenAnswer.slice(0, -1);
-        setHiddenAnswer(newHidden);
-        setPetitionDisplay(PETITION_PHRASE.substring(0, newHidden.length + 1));
-      } else {
-        // Exit hiding mode if no hidden answer left
-        setIsHiding(false);
-        setPetitionDisplay('');
-      }
-    } else if (newValue.length > expectedDisplayLength) {
-      // User added characters
-      const addedChars = newValue.length - expectedDisplayLength;
-      let newHidden = hiddenAnswer;
+  // --- MOBILE OPTIMIZED INPUT HANDLER ---
+  const handlePetitionInput = useCallback((e: any) => {
+    if (showAnswer || processingRef.current) return;
+    
+    processingRef.current = true;
+    
+    setTimeout(() => {
+      const newValue = e.target.value;
+      const lastValue = lastValueRef.current;
       
-      // Process each added character
-      for (let i = 0; i < addedChars; i++) {
-        const newChar = newValue[expectedDisplayLength + i];
-        
-        if (newChar === '.') {
-          // Exit hiding mode when second dot is detected
-          // Keep the petition display as it currently is (don't auto-complete)
-          setIsHiding(false);
-          return;
+      // If not in hiding mode
+      if (!isHiding) {
+        // Check if user just typed a dot on an empty field
+        if (newValue === '.' && lastValue === '') {
+          setIsHiding(true);
+          setHiddenAnswer('');
+          setPetitionDisplay(PETITION_PHRASE.substring(0, 1)); // Show "A"
+          lastValueRef.current = PETITION_PHRASE.substring(0, 1);
         } else {
-          // Add to hidden answer and advance display
-          newHidden = newHidden + newChar;
+          setPetitionDisplay(newValue);
+          lastValueRef.current = newValue;
+        }
+      } else {
+        // In hiding mode
+        const expectedLength = hiddenAnswer.length + 1;
+        
+        if (newValue.length < expectedLength) {
+          // User is deleting
+          if (hiddenAnswer.length > 0) {
+            const newHidden = hiddenAnswer.slice(0, -1);
+            setHiddenAnswer(newHidden);
+            const newDisplay = PETITION_PHRASE.substring(0, newHidden.length + 1);
+            setPetitionDisplay(newDisplay);
+            lastValueRef.current = newDisplay;
+          } else {
+            // Exit hiding mode
+            setIsHiding(false);
+            setPetitionDisplay('');
+            lastValueRef.current = '';
+          }
+        } else if (newValue.length > expectedLength) {
+          // User added characters
+          const addedChars = newValue.substring(expectedLength);
+          
+          if (addedChars.includes('.')) {
+            // Second dot detected - exit hiding mode
+            setIsHiding(false);
+            // Keep current display as is
+            lastValueRef.current = petitionDisplay;
+          } else {
+            // Regular characters
+            const newHidden = hiddenAnswer + addedChars;
+            setHiddenAnswer(newHidden);
+            
+            if ((newHidden.length + 1) >= PETITION_PHRASE.length) {
+              // Auto-complete
+              setIsHiding(false);
+              setPetitionDisplay(PETITION_PHRASE);
+              lastValueRef.current = PETITION_PHRASE;
+            } else {
+              const newDisplay = PETITION_PHRASE.substring(0, newHidden.length + 1);
+              setPetitionDisplay(newDisplay);
+              lastValueRef.current = newDisplay;
+            }
+          }
         }
       }
-
-      // Update hidden answer and display
-      setHiddenAnswer(newHidden);
       
-      if ((newHidden.length + 1) >= PETITION_PHRASE.length) {
-        // Auto-complete when we reach the end
-        setIsHiding(false);
-        setPetitionDisplay(PETITION_PHRASE);
-      } else {
-        setPetitionDisplay(PETITION_PHRASE.substring(0, newHidden.length + 1));
-      }
-    }
+      processingRef.current = false;
+    }, 0);
   }, [isHiding, showAnswer, hiddenAnswer, petitionDisplay, PETITION_PHRASE]);
 
+  // --- FALLBACK CHANGE HANDLER ---
+  const handlePetitionChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    if (showAnswer || processingRef.current) return;
+    
+    // Only process if onInput didn't handle it
+    if (!processingRef.current) {
+      handlePetitionInput(e);
+    }
+  }, [handlePetitionInput, showAnswer]);
+
+  // --- DESKTOP KEYDOWN HANDLER ---
   const handlePetitionKeyDown = useCallback((e: KeyboardEvent<HTMLInputElement>) => {
     if (showAnswer) {
       e.preventDefault();
       return;
     }
 
-    // Handle desktop-specific shortcuts
-    if (isHiding) {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        setIsHiding(false);
-        setPetitionDisplay('');
-        setHiddenAnswer('');
-      }
-      // Let onChange handle the rest for better mobile compatibility
+    // Handle escape for desktop
+    if (isHiding && e.key === 'Escape') {
+      e.preventDefault();
+      setIsHiding(false);
+      setPetitionDisplay('');
+      setHiddenAnswer('');
+      lastValueRef.current = '';
     }
   }, [isHiding, showAnswer]);
 
@@ -257,6 +279,7 @@ const App: React.FC = () => {
     setTypedAnswer('');
     setIsHiding(false);
     setShowAnswer(false);
+    lastValueRef.current = '';
   };
 
   return (
@@ -274,6 +297,7 @@ const App: React.FC = () => {
               showAnswer={showAnswer}
               handlePetitionChange={handlePetitionChange}
               handlePetitionKeyDown={handlePetitionKeyDown}
+              handlePetitionInput={handlePetitionInput}
               setQuestion={setQuestion}
               handleAskAura={handleAskAura}
             />
